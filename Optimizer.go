@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strings"
-	"io"
 )
 
 type OBJOptimizer struct {
@@ -30,6 +30,11 @@ func checkErr(e error) {
 	}
 }
 func NewOBJOptimizer(filename string) *OBJOptimizer {
+	if _, err := os.Stat("T.bak.obj"); err == nil {
+		os.Remove("T.bak.obj")
+		//fmt.Println("no")
+	}
+
 	f, err := os.OpenFile("T.obj", os.O_APPEND|os.O_RDWR, 0660)
 	checkErr(err)
 
@@ -51,9 +56,10 @@ func NewOBJOptimizer(filename string) *OBJOptimizer {
 	mid := (fendline - fstartline) / 2
 	mid = int(math.Floor(float64(mid + fstartline)))
 	//defer f.Close()
-	f.Seek(0,0)
+	f.Seek(0, 0)
 	return &OBJOptimizer{f: f, Fstart: fstartline, Fend: fendline, Fmiddle: mid}
 }
+
 //ExtractFace is extract front face through readlines from mid to end.
 func (e *OBJOptimizer) ExtractFace() {
 	var data string
@@ -65,25 +71,34 @@ func (e *OBJOptimizer) ExtractFace() {
 	fmt.Println(scanner)
 
 	lines := 1
+
+	interallines := 1
 	for scanner.Scan() {
 		//fmt.Println(scanner.Text())
-		if lines < e.Fstart || lines >= e.Fmiddle {
-			dataWriter.WriteString(scanner.Text()+"\n")
+		if lines < e.Fstart {
+			dataWriter.WriteString(scanner.Text() + "\n")
 		}
+		if lines >= e.Fmiddle {
+			dataWriter.WriteString(scanner.Text() + "\n")
+			if interallines%4 == 0 && false {
+				dataWriter.WriteString(scanner.Text() + "\n")
+			}
+
+			interallines++
+		}
+
 		lines++
-
-
 	}
 	dataWriter.Flush()
 	if err := scanner.Err(); err != nil {
 		fmt.Println("reading standard input:", err)
 	}
 	//Write to New obj file.
-	fl,err:=os.OpenFile("T.bak.obj",os.O_CREATE|os.O_RDWR,0666)
+	fl, err := os.OpenFile("T.bak.obj", os.O_CREATE|os.O_RDWR, 0666)
 	checkErr(err)
-	dataReader:=bufio.NewReader(OriginalBytes)
-	i,err:=io.Copy(fl,dataReader)
-	fmt.Println("Write bytes:",i)
+	dataReader := bufio.NewReader(OriginalBytes)
+	i, err := io.Copy(fl, dataReader)
+	fmt.Println("Write bytes:", i)
 	checkErr(err)
 	defer fl.Close()
 
